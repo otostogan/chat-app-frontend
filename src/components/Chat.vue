@@ -30,26 +30,38 @@ export default defineComponent({
 		>([]);
 		const activeUsers = ref<{ id: string; username: string }[]>([]);
 		const content = ref("");
-		const username = ref(prompt("Enter your username") || "Anonymous");
+		const username = ref(localStorage.getItem("username") || "");
+
+		const promptForUsername = () => {
+			const storedUsername = localStorage.getItem("username");
+			if (!storedUsername) {
+				const newUsername = prompt("Enter your username");
+				if (newUsername) {
+					username.value = newUsername;
+					localStorage.setItem("username", newUsername);
+				} else {
+					username.value = "Anonymous";
+					localStorage.setItem("username", "Anonymous");
+				}
+			} else {
+				username.value = storedUsername;
+			}
+		};
 
 		onMounted(() => {
-			// Listen for the message history event
+			promptForUsername();
+
 			socket.on("history", (history) => {
 				messages.value = history;
 			});
-
-			// Listen for new messages
 			socket.on("message", (message) => {
 				messages.value.push(message);
 			});
 
-			// Listen for active users
 			socket.on("activeUsers", (users) => {
 				activeUsers.value = users;
-				console.log(users);
 			});
 
-			// Notify when user joins the chat
 			socket.emit("message", {
 				username: username.value,
 				content: "joined the chat!",
